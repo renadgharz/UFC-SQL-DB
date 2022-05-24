@@ -1,30 +1,34 @@
-import requests, bs4, pandas as pd, pprint as pp
+import pandas as pd
+import bs4
+import requests
 
 url = 'https://www.ufc.com/rankings'
 resp = requests.get(url)
-soup = bs4.BeautifulSoup(resp.text, 'html.parser')
+soup = bs4.BeautifulSoup(resp.content, 'html.parser')
+
 divisions = pd.read_html(url)
 
-def rankings_data():
+
+def get_rankings():
 
     for division in divisions:
         division.columns = ['Rank', 'Fighter', 'Change']
-        division.fillna('', inplace= True)
+        division.fillna('', inplace=True)
 
-    champions = []
-    for champ in soup.select('div.rankings--athlete--champion')[0:13]:
-        champions.append(champ.h5.text.strip("\n"))
+    champions = soup.select('table.cols-0')[0:13]
+    for champ, division in zip(champions, divisions):
+        try:
+            division.loc[-1] = ['Champion/#1', champ.h5.text.strip("\n"), ' ']
+            division.index = division.index + 1
+            division.sort_index(inplace=True)
 
-    for division, champ in zip(divisions, champions):
-        division.loc[-1] = ['Champion/#1', champ, ' ']
-        division.index = division.index + 1
-        division.sort_index(inplace=True)
+        except:
+            division.loc[-1] = ['Champion/#1', 'VACANT TITLE', ' ']
+            division.index = division.index + 1
+            division.sort_index(inplace=True)
 
-    print(divisions[1])
-
-    p4p, fly, bantam, feather, light, welter, middle, lheavy, heavy = divisions[0:9] #men's divisions including P4P
-    w_p4p, w_straw, w_fly, w_bantam= divisions[9:13] #women's division including P4P, excluding Women's Featherweight
+    p4p, fly, bantam, feather, light, welter, middle, lheavy, heavy = divisions[0:9]  # men's divisions including P4P
+    w_p4p, w_straw, w_fly, w_bantam = divisions[9:13]  # women's division including P4P, excluding Women's Featherweight
 
 
-
-rankings_data()
+get_rankings()
